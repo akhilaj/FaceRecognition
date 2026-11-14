@@ -74,8 +74,8 @@ async def predict_similarity(request: Request, file1: UploadFile = File(...), fi
         "predict_similarity.html", 
         {
             "result": result_str, 
-            "filename1": str(file1.filename), 
-            "filename2": str(file2.filename)
+            "simi_filename1": simi_filename1, 
+            "simi_filename2": simi_filename2
         }
     )
     
@@ -83,23 +83,23 @@ async def predict_similarity(request: Request, file1: UploadFile = File(...), fi
 ####################################  Face Recognition endpoints  #################################################
 @app.get("/face_recognition/")
 async def face_recognition_root(request: Request):
-    return templates.TemplateResponse("face_recognition.html", {'request': request,})
+    return templates.TemplateResponse(request, "face_recognition.html")
 
 
 @app.post("/predict_face_recognition/")
 async def predict_face_recognition(request: Request, file1: UploadFile = File(...)):
-    simi_filename1 = 'app/static/' + file1.filename
-    with open(simi_filename1, "wb") as f:
+    face_rec_filename = 'app/static/' + file1.filename
+    with open(face_rec_filename, "wb") as f:
         f.write(await file1.read())
 
-    img1 = Image.open(simi_filename1).convert("RGB")
+    img1 = Image.open(face_rec_filename).convert("RGB")
     img1 = np.array(img1).astype(np.uint8)
 
     # Run inference pipeline using our lazy loaded weights setup
     predicted_class = face_recognition.get_face_class(img1)
     result_str = str(predicted_class)
 
-    os.remove(simi_filename1)
+    # os.remove(face_rec_filename)
 
     # FIXED: Explicitly pass request first, and use strict string mapping arrays
     return templates.TemplateResponse(
@@ -107,7 +107,7 @@ async def predict_face_recognition(request: Request, file1: UploadFile = File(..
         "predict_face_recognition.html", 
         {
             "result": result_str, 
-            "filename1": str(file1.filename)
+            "face_rec_filename": face_rec_filename
         }
     )
 
