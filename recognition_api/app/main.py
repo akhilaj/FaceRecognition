@@ -10,7 +10,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app import __version__
-from app.Hackathon_setup import face_recognition, exp_recognition
+from app.Hackathon_setup import face_recognition
 
 import numpy as np
 from PIL import Image
