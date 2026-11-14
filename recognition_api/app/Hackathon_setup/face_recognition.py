@@ -21,10 +21,19 @@ import pickle
 
 # Current_path stores absolute path of the file from where it runs. 
 current_path = os.path.dirname(os.path.abspath(__file__))
-
+device = torch.device("cpu")
 #1) The below function is used to detect faces in the given image.
 #2) It returns only one image which has maximum area out of all the detected faces in the photo.
 #3) If no face is detected,then it returns zero(0).
+# 1. Load Siamese Network once at startup
+feature_net = SiameseNetwork().to(device)
+ckpt = torch.load(os.path.join(current_path, 'siamese_model.t7'), map_location=device)
+feature_net.load_state_dict(ckpt['net_dict'])
+feature_net.eval()
+
+# 2. Load Sklearn Classifier once at startup (update filename if yours differs)
+classifier_path = os.path.join(current_path, 'decision_tree_model.sav')
+clf = joblib.load(classifier_path) if os.path.exists(classifier_path) else None
 
 def detected_face(image):
     eye_haar = current_path + '/haarcascade_eye.xml'
@@ -75,8 +84,11 @@ def get_similarity(img1, img2):
     # YOUR CODE HERE, load the model
     
     # YOUR CODE HERE, return similarity measure using your model
-    
-    return 0
+    with torch.no_grad():
+            output1, output2 = feature_net(face1, face2)
+            euclidean_distance = F.pairwise_distance(output1, output2)
+            
+    return float(euclidean_distance.item())
     
 #1) Image captured from mobile is passed as parameter to this function in the API call, It returns the face class in the string form ex: "Person1"
 #2) The image is passed to the function in base64 encoding, Code to decode the image provided within the function
@@ -85,12 +97,21 @@ def get_similarity(img1, img2):
 #5) Along with the siamese, you need the classifier as well, which is to be finetuned with the faces that you are training
 ##Caution: Don't change the definition or function name; for loading the model use the current_path for path example is given in comments to the function
 def get_face_class(img1):
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    
+    if clf is None:
+        return "Classifier model file not found"
+        
     det_img1 = detected_face(img1)
-    if(det_img1 == 0):
-        det_img1 = Image.fromarray(cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY))
-    ##YOUR CODE HERE, return face class here
-    ##Hint: you need a classifier finetuned for your classes, it takes o/p of siamese as i/p to it
-    ##Better Hint: Siamese experiment is covered in one of the labs
-    return "YET TO BE CODED"
+    if det_img1 == 0:
+        det_img1 = Image.fromarray(cv2.cvtColor(img1, cv2.COLOR_RGB2GRAY))
+        
+    face1 = trnscm(det_img1).unsqueeze(0).to(device)
+    
+    with torch.no_grad():
+        embedding = feature_net.forward_once(face1).cpu().numpy()
+        
+    pred = clf.predict(embedding)[0]
+    
+    # If classifier outputs an integer index (e.g., 0, 1, 2), map it using classes
+    if isinstance(pred, (int, np.integer)):
+        return classes[pred] if pred < len(classes) else str(pred)
+    return str(pred)
