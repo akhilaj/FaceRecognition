@@ -11,10 +11,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libhdf5-dev && \
     rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip first
+# Upgrade pip
 RUN pip install --no-cache-dir --upgrade pip
 
-# Force install lightweight CPU PyTorch wheels directly from the official index url
+# CORRECT WHEEL URL: Force install lightweight CPU PyTorch wheels directly from the official whl index url
 RUN pip install --no-cache-dir torch==2.1.0 torchvision==0.16.0 --index-url https://pytorch.org
 
 # Copy and install the rest of your requirements.txt
