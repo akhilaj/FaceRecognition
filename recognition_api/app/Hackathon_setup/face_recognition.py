@@ -1,5 +1,5 @@
 import os
-from tkinter import Image
+from PIL import Image
 import cv2
 import numpy as np
 
